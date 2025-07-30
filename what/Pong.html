@@ -1,0 +1,2057 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Retro Pong Neon</title> <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Roboto:wght@300;400;700&display=swap" rel="stylesheet"> <style>
+        :root {
+            --primary-neon-color: #4CAF50; /* Softer green */
+            --secondary-neon-color: #2196F3; /* Soft blue */
+            --background-color: #1a1a2e; /* Dark blue background */
+            --text-color: #e0e0e0;
+            --paddle-color: var(--primary-neon-color);
+            --ball-color: var(--secondary-neon-color);
+            --border-glow-color: rgba(76, 175, 80, 0.7);
+            --menu-bg-color: rgba(26, 26, 46, 0.85);
+            --evil-mode-color: #ff0000;
+            --boss-health-color: #ff0000;
+            --player-health-color: #00ff00;
+        }
+
+        body {
+            background-color: var(--background-color);
+            background-image:
+                linear-gradient(rgba(76, 175, 80, 0.1) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(76, 175, 80, 0.1) 1px, transparent 1px);
+            background-size: 20px 20px;
+            color: var(--text-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            font-family: 'Roboto', sans-serif;
+            overflow: hidden;
+            position: relative;
+            transition: all 0.5s ease-in-out;
+        }
+
+        body.evil-mode {
+            --primary-neon-color: #ff3d00;
+            --secondary-neon-color: #ff0000;
+            --background-color: #1a0000;
+            --text-color: #ff3d00;
+            --border-glow-color: rgba(255, 61, 0, 0.7);
+            --menu-bg-color: rgba(26, 0, 0, 0.95);
+            --player-health-color: #ff3d00;
+            background-image:
+                linear-gradient(rgba(255, 61, 0, 0.1) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 61, 0, 0.1) 1px, transparent 1px),
+                url('doom-bg.jpg');
+            background-size: 20px 20px, 20px 20px, cover;
+            background-blend-mode: overlay;
+            font-family: 'Press Start 2P', cursive;
+        }
+
+        canvas {
+            border: 3px solid var(--primary-neon-color);
+            display: block;
+            margin: 20px auto;
+            border-radius: 8px;
+            box-shadow: 0 0 15px var(--border-glow-color), 0 0 30px var(--border-glow-color) inset;
+            filter: blur(0px);
+            transition: all 0.5s ease-in-out;
+            background-color: rgba(26, 26, 46, 0.8);
+            position: relative;
+        }
+
+        canvas::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(45deg, 
+                rgba(255, 61, 0, 0.1) 25%, 
+                transparent 25%, 
+                transparent 50%, 
+                rgba(255, 61, 0, 0.1) 50%, 
+                rgba(255, 61, 0, 0.1) 75%, 
+                transparent 75%, 
+                transparent);
+            background-size: 20px 20px;
+            pointer-events: none;
+        }
+
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            /* Frosted glass effect */
+            background-color: rgba(0, 0, 0, 0.3); /* Dark semi-transparent overlay */
+            backdrop-filter: blur(10px) saturate(120%); /* Saturate for a bit more color pop under blur */
+            -webkit-backdrop-filter: blur(10px) saturate(120%); /* Safari */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            z-index: 2;
+            transition: opacity 0.5s ease-in-out, visibility 0.5s ease-in-out;
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .overlay.hidden {
+            opacity: 0;
+            visibility: hidden;
+        }
+
+        .menu {
+            background-color: var(--menu-bg-color);
+            padding: 30px 45px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 0 25px rgba(76, 175, 80, 0.6), 0 0 10px var(--secondary-neon-color) inset;
+            border: 1px solid rgba(76, 175, 80, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .menu::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(45deg, 
+                rgba(255, 61, 0, 0.1) 25%, 
+                transparent 25%, 
+                transparent 50%, 
+                rgba(255, 61, 0, 0.1) 50%, 
+                rgba(255, 61, 0, 0.1) 75%, 
+                transparent 75%, 
+                transparent);
+            background-size: 20px 20px;
+            pointer-events: none;
+        }
+
+        .menu h1 {
+            margin-top: 0;
+            margin-bottom: 30px;
+            font-family: 'Press Start 2P', cursive;
+            font-size: 2.0em;
+            color: var(--primary-neon-color);
+            text-shadow: 0 0 5px var(--primary-neon-color), 0 0 10px var(--primary-neon-color);
+            letter-spacing: 2px;
+            position: relative;
+        }
+
+        button {
+            background-color: rgba(76, 175, 80, 0.2);
+            color: var(--primary-neon-color);
+            border: 2px solid var(--primary-neon-color);
+            padding: 10px 20px;
+            margin: 12px 8px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 17px;
+            font-family: 'Press Start 2P', cursive;
+            font-weight: bold;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        button:hover {
+            background-color: var(--primary-neon-color);
+            color: var(--background-color);
+            box-shadow: 0 0 15px var(--primary-neon-color);
+            transform: scale(1.05);
+        }
+
+        button::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(
+                45deg,
+                transparent,
+                rgba(255, 61, 0, 0.1),
+                transparent
+            );
+            transform: rotate(45deg);
+            animation: buttonGlow 2s linear infinite;
+        }
+
+        @keyframes buttonGlow {
+            0% {
+                transform: rotate(45deg) translateX(-100%);
+            }
+            100% {
+                transform: rotate(45deg) translateX(100%);
+            }
+        }
+
+        .controls-group {
+            margin: 25px 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        label {
+            margin-bottom: 10px;
+            font-size: 16px;
+            color: var(--text-color);
+        }
+
+        input[type="range"] {
+            width: 90%;
+            max-width: 220px;
+            margin-top: 5px;
+            appearance: none;
+            height: 8px; /* Slimmer track */
+            background: #333; /* Darker track */
+            outline: none;
+            border-radius: 4px;
+            cursor: pointer;
+            box-shadow: 0 0 5px rgba(0,0,0,0.5) inset;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            background: var(--primary-neon-color);
+            cursor: pointer;
+            border-radius: 50%;
+            border: none; /* Remove border or make it subtle */
+            box-shadow: 0 0 8px var(--primary-neon-color); /* Thumb glow */
+        }
+        input[type="range"]::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            background: var(--primary-neon-color);
+            cursor: pointer;
+            border-radius: 50%;
+            border: none;
+            box-shadow: 0 0 8px var(--primary-neon-color);
+        }
+
+        .computer-play-toggle {
+            margin-top: 20px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+         input[type="checkbox"] { /* Custom styled checkbox */
+            appearance: none;
+            -webkit-appearance: none;
+            background-color: #333;
+            border: 2px solid var(--primary-neon-color);
+            padding: 7px; /* Size of checkbox */
+            border-radius: 3px;
+            display: inline-block;
+            position: relative;
+            cursor: pointer;
+            margin-left: 10px;
+            transition: background-color 0.2s;
+        }
+        input[type="checkbox"]:checked {
+            background-color: var(--primary-neon-color);
+            border-color: var(--primary-neon-color);
+        }
+        input[type="checkbox"]:checked::after { /* Checkmark */
+            content: '';
+            position: absolute;
+            left: 5px;
+            top: 1px;
+            width: 4px;
+            height: 8px;
+            border: solid var(--background-color); /* Checkmark color */
+            border-width: 0 2px 2px 0;
+            transform: rotate(45deg);
+        }
+
+        /* Score display styling */
+        .score {
+            font-family: 'Press Start 2P', cursive;
+            font-size: 28px;
+            color: var(--text-color);
+            text-shadow: 0 0 3px var(--text-color);
+            position: absolute;
+            top: 20px;
+            z-index: 1;
+        }
+        #leftScore {
+            left: 50px;
+            top: 100px; /* Moved down to avoid overlap */
+        }
+        #rightScore {
+            right: 50px;
+            top: 100px; /* Moved down to avoid overlap */
+        }
+
+        /* Countdown text styling */
+        .countdown-text {
+             font-family: 'Press Start 2P', cursive;
+             font-size: 70px;
+             color: rgba(0, 255, 255, 0.8); /* Cyan, semi-transparent */
+             text-shadow: 0 0 10px rgba(0, 255, 255, 1);
+             text-align: center;
+             width: 100%; /* For centering */
+        }
+
+        /* Add notification styles */
+        .notification {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(255, 61, 0, 0.9);
+            color: white;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-family: 'Press Start 2P', cursive;
+            font-size: 16px;
+            box-shadow: 0 0 20px rgba(255, 61, 0, 0.5);
+            opacity: 0;
+            transition: opacity 0.3s ease-in-out;
+            z-index: 1000;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .notification.show {
+            opacity: 1;
+        }
+
+        /* Add health bar styles */
+        .health-bar {
+            position: absolute;
+            height: 20px;
+            border: 2px solid rgba(255, 61, 0, 0.5);
+            border-radius: 10px;
+            overflow: hidden;
+            z-index: 2;
+            background: rgba(0, 0, 0, 0.5);
+        }
+
+        .health-bar-boss {
+            top: 50px;
+            left: 50px;
+            width: 300px;
+        }
+
+        .health-bar-player {
+            top: 50px;
+            right: 50px;
+            width: 300px;
+        }
+
+        .health-fill {
+            height: 100%;
+            transition: width 0.3s ease-out;
+        }
+
+        .health-fill-boss {
+            background: linear-gradient(90deg, #ff0000, #ff4444);
+            box-shadow: 0 0 10px #ff0000;
+        }
+
+        .health-fill-player {
+            background: linear-gradient(90deg, #ff3d00, #ff6d40);
+            box-shadow: 0 0 10px #ff3d00;
+        }
+
+        .boss-name {
+            position: absolute;
+            top: 20px;
+            left: 50px;
+            color: #ff0000;
+            font-family: 'Press Start 2P', cursive;
+            font-size: 16px;
+            text-shadow: 0 0 5px #ff0000;
+            z-index: 2;
+        }
+
+        .player-name {
+            position: absolute;
+            top: 20px;
+            right: 50px;
+            color: #ff3d00;
+            font-family: 'Press Start 2P', cursive;
+            font-size: 16px;
+            text-shadow: 0 0 5px #ff3d00;
+            z-index: 2;
+        }
+
+        canvas {
+            transition: transform 0.05s ease-out, filter 0.1s ease-out;
+        }
+
+        select {
+            background-color: var(--background-color);
+            color: var(--text-color);
+            border: 2px solid var(--primary-neon-color);
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-family: 'Press Start 2P', cursive;
+            font-size: 14px;
+            cursor: pointer;
+            margin-left: 10px;
+        }
+
+        select:focus {
+            outline: none;
+            box-shadow: 0 0 10px var(--primary-neon-color);
+        }
+
+        select option {
+            background-color: var(--background-color);
+            color: var(--text-color);
+        }
+
+    </style>
+</head>
+<body>
+    <canvas id="pongCanvas" width="1200" height="600"></canvas>
+    
+    <div class="overlay" id="menuOverlay">
+        <div class="menu">
+            <h1>PONG NEON</h1> <button id="playButton">Play Game</button>
+            <div class="controls-group">
+                <label for="volumeSlider">Volume: <span id="volumeValue">0.50</span></label> <input type="range" min="0" max="1" step="0.01" value="0.5" id="volumeSlider">
+                <div class="computer-play-toggle">
+                    <label for="computerPlayCheckbox">Play VS Computer</label> <input type="checkbox" id="computerPlayCheckbox">
+                </div>
+                <div class="difficultySelect">
+                    <label for="aiDifficulty">AI Difficulty: </label>
+                    <select id="aiDifficulty">
+                        <option value="easy">Easy</option>
+                        <option value="medium" selected>Medium</option>
+                        <option value="hard">Hard</option>
+                    </select>
+                </div>
+            </div>
+            <button id="exitButton">Menu</button> </div>
+    </div>
+
+    <script>
+        // --- Game Constants ---
+        const PADDLE_WIDTH = 15;
+        const PADDLE_HEIGHT = 85; // Slightly taller
+        const BALL_RADIUS = 9;   // Slightly bigger
+        const COUNTDOWN_SECONDS = 3;
+        const WINNING_SCORE = 5;
+
+        // Normal and boss fight canvas sizes
+        const NORMAL_CANVAS_WIDTH = 800;
+        const NORMAL_CANVAS_HEIGHT = 400;
+        const BOSS_CANVAS_WIDTH = 2000; // Increased from 1400
+        const BOSS_CANVAS_HEIGHT = 1000; // Increased from 700
+
+        const PADDLE_SPEED_PPS = 400; // Slightly slower
+        const INITIAL_BALL_SPEED_X_PPS = 400; // Slower initial speed
+        const INITIAL_BALL_SPEED_Y_PPS = 400; // Slower initial speed
+        const COMPUTER_PADDLE_SPEED_FACTOR = 0.78;
+        const BALL_SPEED_INCREASE_FACTOR = 1.01; // Very gradual speed increase
+        const MAX_BALL_SPEED_X_PPS = 500; // Lower max speed
+        const MAX_BALL_SPEED_Y_PPS = 400; // Lower max speed
+        const MIN_BALL_SPEED_X_PPS = 400; // Lower min speed
+        const MIN_BALL_SPEED_Y_PPS = 400; // Lower min speed
+        const MIN_TOTAL_SPEED = 600; // Increased from 400
+        const MIN_SPEED_MULTIPLIER = 1.0;
+        const MAX_SPEED_MULTIPLIER = 2.0;
+        let currentSpeedMultiplier = 1.0;
+        let isBallOnFire = false;
+        let fireParticles = [];
+        let greenTrailParticles = [];
+        let hasGreenTrail = false;
+        const DASH_SPEED = 2000; // Speed of the dash
+        const DASH_DURATION = 0.2; // Duration of dash in seconds
+        const DOUBLE_TAP_WINDOW = 300; // Time window for double tap in milliseconds
+
+        // Add paddle size multipliers for evil mode
+        const LEFT_PADDLE_MULTIPLIER = 2.0; // Left paddle gets bigger
+        const RIGHT_PADDLE_MULTIPLIER = 0.85; // Right paddle gets slightly smaller
+
+        // Add time slow powerup system
+        const TIME_SLOW_FACTOR = 0.3; // Ball moves at 30% speed during time slow
+        const TIME_SLOW_DURATION = 2.0; // Duration of time slow in seconds
+        const TIME_SLOW_COOLDOWN = 5.0; // Cooldown duration in seconds
+
+        // --- DOM Elements ---
+        const canvas = document.getElementById('pongCanvas');
+        const ctx = canvas.getContext('2d');
+        const menuOverlay = document.getElementById('menuOverlay');
+        const playButton = document.getElementById('playButton');
+        const exitButton = document.getElementById('exitButton');
+        const volumeSlider = document.getElementById('volumeSlider');
+        const volumeValueDisplay = document.getElementById('volumeValue');
+        const computerPlayCheckbox = document.getElementById('computerPlayCheckbox');
+
+        // Initialize canvas with normal size
+        canvas.width = NORMAL_CANVAS_WIDTH;
+        canvas.height = NORMAL_CANVAS_HEIGHT;
+
+        // Create score display elements dynamically
+        const leftScoreDisplay = document.createElement('div');
+        leftScoreDisplay.id = 'leftScore';
+        leftScoreDisplay.className = 'score';
+        document.body.appendChild(leftScoreDisplay);
+
+        const rightScoreDisplay = document.createElement('div');
+        rightScoreDisplay.id = 'rightScore';
+        rightScoreDisplay.className = 'score';
+        document.body.appendChild(rightScoreDisplay);
+
+        // Create notification element
+        const notification = document.createElement('div');
+        notification.className = 'notification';
+        notification.textContent = 'EVIL MODE ACTIVATED';
+        document.body.appendChild(notification);
+
+        // --- Game State Variables ---
+        let leftPaddleY, rightPaddleY;
+        let ballX, ballY;
+        let currentBallSpeedX, currentBallSpeedY;
+        let leftPlayerScore, rightPlayerScore;
+        let countdownValue;
+        let gameIntervalId;
+        let gameRunning = false;
+        let playAgainstComputer = false;
+        let lastFrameTime = 0;
+        let timeAccumulator = 0;
+        let lastUpArrowPress = 0;
+        let lastDownArrowPress = 0;
+        let isDashing = false;
+        let dashDirection = 0;
+        let dashTimeRemaining = 0;
+        let dashTrailParticles = [];
+        let upArrowPressed = false;
+        let downArrowPressed = false;
+
+        // Add bullet-related variables
+        let leftPaddleBullets = [];
+        let rightPaddleBullets = [];
+        let leftPaddleCooldown = 0;
+        let rightPaddleCooldown = 0;
+        let rightPaddleBurstCount = 0;
+        let rightPaddleBurstCooldown = 0;
+        const BULLET_COOLDOWN = 0.5; // seconds between shots for left paddle
+        const RIGHT_PADDLE_BURST_SIZE = 3; // number of bullets in a burst
+        const RIGHT_PADDLE_BURST_COOLDOWN = 1.0; // seconds between bursts
+        const RIGHT_PADDLE_BURST_INTERVAL = 0.1; // seconds between bullets in a burst
+
+        // Cheat code system
+        let keySequence = '';
+        let cheatActive = false;
+        const CHEAT_CODE = 'scott1';
+        const CHEAT_PADDLE_MULTIPLIER = 2;
+
+        // Audio setup
+        const HIT_SOUND_POOL_SIZE = 5;
+        const hitSounds = [];
+        let currentHitSoundIndex = 0;
+        let masterVolume = 0.5;
+
+        // Add fart sound for evil mode
+        const fartSound = new Audio('fart.mp3');
+        fartSound.loop = true; // Make it loop continuously
+        let wasPlaying = false; // Track if sound was playing before deactivation
+
+        // Use a more distinct hit sound if possible. For now, using 'sound.mp3'
+        const PADDLE_HIT_SOUND_SRC = 'sound.mp3'; // Player paddle hit
+        const WALL_HIT_SOUND_SRC = 'sound.mp3'; // Wall hit (can be different)
+
+        // Add to Audio Setup section
+        const timeSound = new Audio('time.mp3');
+        timeSound.volume = masterVolume;
+        timeSound.preload = 'auto'; // Ensure audio is preloaded
+
+        // Add Doom-themed audio setup
+        const doomAudio = {
+            background: new Audio('doom-bg.mp3'),
+            rocket: new Audio('rocket.mp3'),
+            chainsaw: new Audio('chainsaw.mp3'),
+            health: new Audio('health.mp3'),
+            teleport: new Audio('teleport.mp3'),
+            demon: new Audio('demon.mp3'),
+            phaseChange: new Audio('phase-change.mp3'),
+            gameOver: new Audio('game-over.mp3')
+        };
+
+        function loadSounds() {
+            for (let i = 0; i < HIT_SOUND_POOL_SIZE; i++) {
+                const audio = new Audio(PADDLE_HIT_SOUND_SRC);
+                audio.volume = masterVolume;
+                hitSounds.push(audio);
+            }
+            // Load fart sound
+            fartSound.volume = masterVolume;
+            
+            // Preload time sound
+            timeSound.load();
+            timeSound.addEventListener('canplaythrough', () => {
+                console.log('Time sound loaded and ready');
+            });
+            timeSound.addEventListener('error', (e) => {
+                console.error('Error loading time sound:', e);
+            });
+        }
+        loadSounds();
+
+        function playSound(isPaddleHit = true) {
+            if (hitSounds.length === 0) return;
+            const sound = hitSounds[currentHitSoundIndex];
+            sound.volume = masterVolume;
+            sound.currentTime = 0;
+            sound.play().catch(error => console.error("Error playing sound:", error));
+            currentHitSoundIndex = (currentHitSoundIndex + 1) % HIT_SOUND_POOL_SIZE;
+        }
+
+        // Add animation variables
+        let isAnimating = false;
+        let animationStartTime = 0;
+        const ANIMATION_DURATION = 1000; // 1 second animation
+
+        function animateCanvasSize(targetWidth, targetHeight) {
+            if (isAnimating) return;
+            
+            isAnimating = true;
+            animationStartTime = performance.now();
+            
+            const startWidth = canvas.width;
+            const startHeight = canvas.height;
+            const widthDiff = targetWidth - startWidth;
+            const heightDiff = targetHeight - startHeight;
+            
+            function updateCanvasSize(currentTime) {
+                const elapsed = currentTime - animationStartTime;
+                const progress = Math.min(elapsed / ANIMATION_DURATION, 1);
+                
+                // Easing function for smooth animation
+                const easeProgress = progress < 0.5 
+                    ? 4 * progress * progress * progress 
+                    : 1 - Math.pow(-2 * progress + 2, 3) / 2;
+                
+                // Update canvas size
+                canvas.width = Math.round(startWidth + (widthDiff * easeProgress));
+                canvas.height = Math.round(startHeight + (heightDiff * easeProgress));
+                
+                // Adjust ball position during animation
+                const ballXProgress = (ballX - startWidth/2) / (startWidth/2);
+                const ballYProgress = (ballY - startHeight/2) / (startHeight/2);
+                ballX = canvas.width/2 + (ballXProgress * canvas.width/2);
+                ballY = canvas.height/2 + (ballYProgress * canvas.height/2);
+                
+                // Adjust paddle positions during animation
+                const paddleYProgress = (leftPaddleY - startHeight/2) / (startHeight/2);
+                leftPaddleY = canvas.height/2 + (paddleYProgress * canvas.height/2);
+                rightPaddleY = canvas.height/2 + (paddleYProgress * canvas.height/2);
+                
+                if (progress < 1) {
+                    requestAnimationFrame(updateCanvasSize);
+                } else {
+                    isAnimating = false;
+                    // Only reset ball if not in evil mode
+                    if (!cheatActive) {
+                        resetBall((Math.random() > 0.5) ? 1 : -1);
+                    }
+                }
+            }
+            
+            requestAnimationFrame(updateCanvasSize);
+        }
+
+        // Add back the keysPressed object
+        const keysPressed = { ArrowUp: false, ArrowDown: false, w: false, s: false };
+
+        function changeVolume() {
+            masterVolume = parseFloat(volumeSlider.value);
+            volumeValueDisplay.textContent = masterVolume.toFixed(2);
+            hitSounds.forEach(sound => sound.volume = masterVolume);
+            fartSound.volume = masterVolume;
+            timeSound.volume = masterVolume;
+        }
+
+        function resetBall(direction = 1) {
+            ballX = canvas.width / 2;
+            ballY = canvas.height / 2;
+            
+            // Improved angle randomization
+            let angle = (Math.random() * Math.PI / 3) - (Math.PI / 6); // 30-degree range: -15 to +15 deg
+            currentBallSpeedX = INITIAL_BALL_SPEED_X_PPS * Math.cos(angle) * direction;
+            currentBallSpeedY = INITIAL_BALL_SPEED_Y_PPS * Math.sin(angle);
+
+            // Ensure minimum speed
+            const currentSpeed = Math.sqrt(currentBallSpeedX * currentBallSpeedX + currentBallSpeedY * currentBallSpeedY);
+            if (currentSpeed < MIN_BALL_SPEED_X_PPS) {
+                const speedFactor = MIN_BALL_SPEED_X_PPS / currentSpeed;
+                currentBallSpeedX *= speedFactor;
+                currentBallSpeedY *= speedFactor;
+            }
+        }
+
+        function initializeGame() {
+            // Reset canvas to normal size when starting new game
+            canvas.width = NORMAL_CANVAS_WIDTH;
+            canvas.height = NORMAL_CANVAS_HEIGHT;
+            
+            leftPaddleY = canvas.height / 2 - PADDLE_HEIGHT / 2;
+            rightPaddleY = canvas.height / 2 - PADDLE_HEIGHT / 2;
+            leftPlayerScore = 0;
+            rightPlayerScore = 0;
+            updateScoreDisplay();
+            playAgainstComputer = computerPlayCheckbox.checked;
+            
+            // Initialize ball position and speed
+            ballX = canvas.width / 2;
+            ballY = canvas.height / 2;
+            currentBallSpeedX = INITIAL_BALL_SPEED_X_PPS * (Math.random() > 0.5 ? 1 : -1);
+            currentBallSpeedY = INITIAL_BALL_SPEED_Y_PPS * (Math.random() > 0.5 ? 1 : -1);
+            currentSpeedMultiplier = 1.0;
+            ballSpin = 0;
+            
+            startCountdown();
+            
+            // Reset power-ups
+            powerUps = [];
+            powerUpSpawnTimer = 0;
+            Object.values(powerUpEffects).forEach(effect => {
+                effect.active = false;
+                if (effect.timeRemaining !== undefined) {
+                    effect.timeRemaining = 0;
+                }
+            });
+            
+            // Reset bullets
+            leftPaddleBullets = [];
+            rightPaddleBullets = [];
+            leftPaddleCooldown = 0;
+            rightPaddleCooldown = 0;
+        }
+
+        function startCountdown() {
+            countdownValue = COUNTDOWN_SECONDS;
+            timeAccumulator = 0;
+        }
+
+        // Add bullet system
+        class Bullet {
+            constructor(x, y, direction, isLeftPaddle) {
+                this.x = x;
+                this.y = y;
+                this.isLeftPaddle = isLeftPaddle;
+                this.direction = direction;
+                this.active = true;
+                this.animationFrame = 0;
+
+                // Different properties for each paddle
+                if (isLeftPaddle) {
+                    // Boss (left) bullets: slow, big, high damage
+                    this.width = 20;
+                    this.height = 20;
+                    this.speed = 400;
+                    this.damage = 20;
+                    this.color = '#ff0000';
+                    this.glowColor = 'rgba(255, 0, 0, 0.8)';
+                    this.trailColor = 'rgba(255, 0, 0, 0.3)';
+                    this.trailLength = 10;
+                    this.trail = [];
+                } else {
+                    // Player (right) bullets: fast, small, low damage
+                    this.width = 8;
+                    this.height = 8;
+                    this.speed = 1000;
+                    this.damage = 5;
+                    this.color = '#00ff00';
+                    this.glowColor = 'rgba(0, 255, 0, 0.8)';
+                    this.trailColor = 'rgba(0, 255, 0, 0.3)';
+                    this.trailLength = 5;
+                    this.trail = [];
+                }
+            }
+
+            update(deltaTime) {
+                // Update trail
+                this.trail.unshift({ x: this.x, y: this.y });
+                if (this.trail.length > this.trailLength) {
+                    this.trail.pop();
+                }
+
+                // Update position
+                this.x += this.speed * this.direction * deltaTime;
+                this.animationFrame = (this.animationFrame + 0.1) % (Math.PI * 2);
+                
+                // Deactivate if bullet goes off screen
+                if (this.x < 0 || this.x > canvas.width) {
+                    this.active = false;
+                }
+            }
+
+            draw(ctx) {
+                if (!this.active) return;
+
+                ctx.save();
+                
+                // Draw trail
+                this.trail.forEach((pos, index) => {
+                    const alpha = (1 - index / this.trailLength) * 0.5;
+                    ctx.fillStyle = this.trailColor.replace('0.3', alpha.toString());
+                    ctx.beginPath();
+                    ctx.arc(pos.x, pos.y, this.width * 0.5, 0, Math.PI * 2);
+                    ctx.fill();
+                });
+
+                // Draw main bullet
+                const yOffset = Math.sin(this.animationFrame) * 2;
+                
+                // Outer glow
+                ctx.shadowColor = this.glowColor;
+                ctx.shadowBlur = 15;
+                
+                // Bullet body
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y + yOffset, this.width * 0.5, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Inner glow
+                const gradient = ctx.createRadialGradient(
+                    this.x, this.y + yOffset, 0,
+                    this.x, this.y + yOffset, this.width * 0.5
+                );
+                gradient.addColorStop(0, '#ffffff');
+                gradient.addColorStop(0.5, this.color);
+                gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+                
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y + yOffset, this.width * 0.3, 0, Math.PI * 2);
+                ctx.fill();
+                
+                ctx.restore();
+            }
+        }
+
+        function updateBullets(deltaTime) {
+            // Don't update bullets during countdown
+            if (countdownValue > 0) return;
+
+            // Update cooldowns
+            if (leftPaddleCooldown > 0) leftPaddleCooldown -= deltaTime;
+            if (rightPaddleCooldown > 0) rightPaddleCooldown -= deltaTime;
+            if (rightPaddleBurstCooldown > 0) rightPaddleBurstCooldown -= deltaTime;
+
+            // Handle right paddle burst fire
+            if (keysPressed.l && cheatActive && rightPaddleBurstCooldown <= 0 && rightPaddleCooldown <= 0) {
+                if (rightPaddleBurstCount < RIGHT_PADDLE_BURST_SIZE) {
+                    // Shoot a bullet in the burst
+                    rightPaddleBullets.push(new Bullet(
+                        canvas.width - PADDLE_WIDTH,
+                        rightPaddleY + (cheatActive ? PADDLE_HEIGHT * RIGHT_PADDLE_MULTIPLIER : PADDLE_HEIGHT) / 2,
+                        -1,
+                        false
+                    ));
+                    rightPaddleCooldown = RIGHT_PADDLE_BURST_INTERVAL;
+                    rightPaddleBurstCount++;
+                    playSound(true);
+                } else {
+                    // Burst is complete, start burst cooldown
+                    rightPaddleBurstCount = 0;
+                    rightPaddleBurstCooldown = RIGHT_PADDLE_BURST_COOLDOWN;
+                }
+            }
+
+            // Update left paddle bullets
+            leftPaddleBullets.forEach(bullet => {
+                bullet.update(deltaTime);
+                
+                // Check collision with right paddle
+                if (bullet.active) {
+                    const rightPaddleHeight = cheatActive ? PADDLE_HEIGHT * RIGHT_PADDLE_MULTIPLIER : PADDLE_HEIGHT;
+                    if (bullet.x + bullet.width > canvas.width - PADDLE_WIDTH &&
+                        bullet.y > rightPaddleY &&
+                        bullet.y < rightPaddleY + rightPaddleHeight) {
+                        playerHealth = Math.max(0, playerHealth - bullet.damage);
+                        updateHealthBars();
+                        bullet.active = false;
+                        playSound(true);
+                    }
+                }
+            });
+
+            // Update right paddle bullets
+            rightPaddleBullets.forEach(bullet => {
+                bullet.update(deltaTime);
+                
+                // Check collision with left paddle
+                if (bullet.active) {
+                    const leftPaddleHeight = cheatActive ? PADDLE_HEIGHT * LEFT_PADDLE_MULTIPLIER : PADDLE_HEIGHT;
+                    if (bullet.x < PADDLE_WIDTH &&
+                        bullet.y > leftPaddleY &&
+                        bullet.y < leftPaddleY + leftPaddleHeight) {
+                        bossHealth = Math.max(0, bossHealth - bullet.damage);
+                        updateHealthBars();
+                        bullet.active = false;
+                        playSound(true);
+                    }
+                }
+            });
+
+            // Remove inactive bullets
+            leftPaddleBullets = leftPaddleBullets.filter(bullet => bullet.active);
+            rightPaddleBullets = rightPaddleBullets.filter(bullet => bullet.active);
+        }
+
+        function drawBullets() {
+            leftPaddleBullets.forEach(bullet => bullet.draw(ctx));
+            rightPaddleBullets.forEach(bullet => bullet.draw(ctx));
+        }
+
+        // Modify the keydown event listener for time slow and bullet shooting
+        window.addEventListener('keydown', event => {
+            if (event.key.toLowerCase() === 'k' && cheatActive && !isTimeSlowed && timeSlowCooldownRemaining <= 0) {
+                // Only activate if ball is moving towards right paddle
+                if (currentBallSpeedX > 0) {
+                    isTimeSlowed = true;
+                    timeSlowRemaining = TIME_SLOW_DURATION;
+                    timeSlowCooldownRemaining = TIME_SLOW_COOLDOWN;
+                    
+                    // Play time slow sound with better error handling
+                    try {
+                        timeSound.currentTime = 0;
+                        timeSound.volume = masterVolume;
+                        const playPromise = timeSound.play();
+                        if (playPromise !== undefined) {
+                            playPromise.catch(error => {
+                                console.error("Error playing time sound:", error);
+                                // Try to reload and play again
+                                timeSound.load();
+                                timeSound.play().catch(e => console.error("Second attempt failed:", e));
+                            });
+                        }
+                    } catch (error) {
+                        console.error("Error with time sound:", error);
+                    }
+                }
+            }
+
+            // Handle bullet shooting
+            if (cheatActive && countdownValue <= 0) {  // Only allow shooting when countdown is finished
+                if (event.key.toLowerCase() === 'f' && leftPaddleCooldown <= 0) {
+                    // Left paddle shoots (boss)
+                    leftPaddleBullets.push(new Bullet(
+                        PADDLE_WIDTH,
+                        leftPaddleY + (cheatActive ? PADDLE_HEIGHT * LEFT_PADDLE_MULTIPLIER : PADDLE_HEIGHT) / 2,
+                        1,
+                        true
+                    ));
+                    leftPaddleCooldown = BULLET_COOLDOWN;
+                    playSound(true);
+                } else if (event.key.toLowerCase() === 'l' && rightPaddleCooldown <= 0) {
+                    // Right paddle shoots (player)
+                    rightPaddleBullets.push(new Bullet(
+                        canvas.width - PADDLE_WIDTH,
+                        rightPaddleY + (cheatActive ? PADDLE_HEIGHT * RIGHT_PADDLE_MULTIPLIER : PADDLE_HEIGHT) / 2,
+                        -1,
+                        false
+                    ));
+                    rightPaddleCooldown = BULLET_COOLDOWN;
+                    playSound(true);
+                }
+            }
+
+            // Handle double tap detection for dash
+            if (cheatActive && !isDashing) {
+                const currentTime = performance.now();
+                
+                if (event.key === 'ArrowUp' && !upArrowPressed) {
+                    upArrowPressed = true;
+                    if (currentTime - lastUpArrowPress < DOUBLE_TAP_WINDOW) {
+                        // Double tap detected - dash up
+                        isDashing = true;
+                        dashDirection = -1;
+                        dashTimeRemaining = DASH_DURATION;
+                    }
+                    lastUpArrowPress = currentTime;
+                } else if (event.key === 'ArrowDown' && !downArrowPressed) {
+                    downArrowPressed = true;
+                    if (currentTime - lastDownArrowPress < DOUBLE_TAP_WINDOW) {
+                        // Double tap detected - dash down
+                        isDashing = true;
+                        dashDirection = 1;
+                        dashTimeRemaining = DASH_DURATION;
+                    }
+                    lastDownArrowPress = currentTime;
+                }
+            }
+
+            if (keysPressed.hasOwnProperty(event.key)) {
+                keysPressed[event.key] = true;
+            }
+        });
+
+        // Add back the keypress event listener for cheat code
+        window.addEventListener('keypress', event => {
+            keySequence += event.key;
+            if (keySequence.length > CHEAT_CODE.length) {
+                keySequence = keySequence.slice(-CHEAT_CODE.length);
+            }
+            if (keySequence === CHEAT_CODE) {
+                cheatActive = !cheatActive;
+                keySequence = '';
+                // Show/hide notification
+                notification.textContent = cheatActive ? 'EVIL MODE ACTIVATED' : 'EVIL MODE DEACTIVATED';
+                notification.classList.add('show');
+                setTimeout(() => {
+                    notification.classList.remove('show');
+                }, 2000);
+
+                // Toggle health bars and names
+                bossHealthBar.style.display = cheatActive ? 'block' : 'none';
+                playerHealthBar.style.display = cheatActive ? 'block' : 'none';
+                bossName.style.display = cheatActive ? 'block' : 'none';
+                playerName.style.display = cheatActive ? 'block' : 'none';
+
+                // Animate canvas size change
+                if (cheatActive) {
+                    animateCanvasSize(BOSS_CANVAS_WIDTH, BOSS_CANVAS_HEIGHT);
+                } else {
+                    animateCanvasSize(NORMAL_CANVAS_WIDTH, NORMAL_CANVAS_HEIGHT);
+                }
+
+                // Initialize health when starting evil mode
+                if (cheatActive) {
+                    bossHealth = 100;
+                    playerHealth = 100;
+                    updateHealthBars();
+                }
+
+                // Handle fart sound
+                if (cheatActive) {
+                    if (wasPlaying) {
+                        fartSound.play();
+                    } else {
+                        fartSound.currentTime = 0;
+                        fartSound.play();
+                    }
+                } else {
+                    wasPlaying = true;
+                    fartSound.pause();
+                    // Also stop time sound when deactivating evil mode
+                    timeSound.pause();
+                    timeSound.currentTime = 0;
+                }
+                
+                console.log('Cheat ' + (cheatActive ? 'activated' : 'deactivated'));
+            }
+        });
+
+        window.addEventListener('keyup', event => {
+            if (keysPressed.hasOwnProperty(event.key)) {
+                keysPressed[event.key] = false;
+                
+                // Reset the pressed state for dash detection
+                if (event.key === 'ArrowUp') {
+                    upArrowPressed = false;
+                } else if (event.key === 'ArrowDown') {
+                    downArrowPressed = false;
+                }
+            }
+            if (event.key.toLowerCase() === 'l') {
+                rightPaddleBurstCount = 0;
+            }
+        });
+
+        playButton.addEventListener('click', startGame);
+        exitButton.addEventListener('click', () => showMenuScreen(false)); // Go to menu, not game over state
+        volumeSlider.addEventListener('input', changeVolume);
+        computerPlayCheckbox.addEventListener('change', event => playAgainstComputer = event.target.checked);
+
+        function updatePaddles(deltaTime) {
+            // Apply time slow only to left paddle movement
+            const leftPaddleDeltaTime = isTimeSlowed ? deltaTime * TIME_SLOW_FACTOR : deltaTime;
+            const rightPaddleDeltaTime = deltaTime; // Right paddle always uses normal time
+            const leftPaddleMoveDistance = PADDLE_SPEED_PPS * leftPaddleDeltaTime;
+            const rightPaddleMoveDistance = PADDLE_SPEED_PPS * rightPaddleDeltaTime;
+            const leftPaddleHeight = cheatActive ? PADDLE_HEIGHT * LEFT_PADDLE_MULTIPLIER : PADDLE_HEIGHT;
+            const rightPaddleHeight = cheatActive ? PADDLE_HEIGHT * RIGHT_PADDLE_MULTIPLIER : PADDLE_HEIGHT;
+
+            if (keysPressed.w) leftPaddleY -= leftPaddleMoveDistance;
+            if (keysPressed.s) leftPaddleY += leftPaddleMoveDistance;
+
+            if (!playAgainstComputer) {
+                if (isDashing) {
+                    // Apply dash movement (dash is not affected by time slow)
+                    rightPaddleY += DASH_SPEED * dashDirection * deltaTime;
+                    dashTimeRemaining -= deltaTime;
+                    
+                    if (dashTimeRemaining <= 0) {
+                        isDashing = false;
+                        dashDirection = 0;
+                    }
+                } else {
+                    if (keysPressed.ArrowUp) rightPaddleY -= rightPaddleMoveDistance;
+                    if (keysPressed.ArrowDown) rightPaddleY += rightPaddleMoveDistance;
+                }
+            } else {
+                // Enhanced AI logic with dynamic difficulty
+                const aiSettings = AI_DIFFICULTY_LEVELS[currentAIDifficulty];
+                const computerMoveDistance = PADDLE_SPEED_PPS * aiSettings.speedFactor * rightPaddleDeltaTime;
+                let targetY = ballY;
+
+                if (currentBallSpeedX > 0) {
+                    const timeToReachPaddle = (canvas.width - PADDLE_WIDTH - ballX) / currentBallSpeedX;
+                    if (timeToReachPaddle > 0 && timeToReachPaddle < (canvas.width / Math.abs(currentBallSpeedX)) * 0.75) {
+                        // Add prediction error based on difficulty
+                        const predictionError = (1 - aiSettings.predictionAccuracy) * (Math.random() - 0.5) * 100;
+                        let predictedY = ballY + currentBallSpeedY * timeToReachPaddle + predictionError;
+                        
+                        // Add spin influence on prediction
+                        predictedY += ballSpin * timeToReachPaddle * 0.5;
+                        
+                        if (predictedY < 0) predictedY = -predictedY;
+                        if (predictedY > canvas.height) predictedY = canvas.height - (predictedY - canvas.height);
+                        targetY = predictedY;
+                    }
+                }
+                
+                const paddleCenter = rightPaddleY + rightPaddleHeight / 2;
+                if (paddleCenter < targetY - rightPaddleHeight / 5) {
+                    rightPaddleY += computerMoveDistance;
+                } else if (paddleCenter > targetY + rightPaddleHeight / 5) {
+                    rightPaddleY -= computerMoveDistance;
+                }
+            }
+
+            // Update boundary checks with correct paddle heights
+            leftPaddleY = Math.max(0, Math.min(leftPaddleY, canvas.height - leftPaddleHeight));
+            rightPaddleY = Math.max(0, Math.min(rightPaddleY, canvas.height - rightPaddleHeight));
+        }
+
+        // Add fire particle class
+        class FireParticle {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.size = Math.random() * 3 + 2;
+                this.speedX = (Math.random() - 0.5) * 2;
+                this.speedY = -Math.random() * 2 - 1;
+                this.life = 1.0;
+                this.decay = Math.random() * 0.02 + 0.02;
+            }
+
+            update() {
+                this.x += this.speedX;
+                this.y += this.speedY;
+                this.life -= this.decay;
+                this.size *= 0.95;
+            }
+
+            draw(ctx) {
+                const gradient = ctx.createRadialGradient(
+                    this.x, this.y, 0,
+                    this.x, this.y, this.size
+                );
+                gradient.addColorStop(0, `rgba(255, ${Math.floor(255 * this.life)}, 0, ${this.life})`);
+                gradient.addColorStop(1, 'rgba(255, 0, 0, 0)');
+                
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        function updateFireParticles() {
+            if (isBallOnFire) {
+                // Add new particles
+                for (let i = 0; i < 3; i++) {
+                    fireParticles.push(new FireParticle(
+                        ballX + (Math.random() - 0.5) * BALL_RADIUS,
+                        ballY + (Math.random() - 0.5) * BALL_RADIUS
+                    ));
+                }
+            }
+
+            // Update and remove dead particles
+            fireParticles = fireParticles.filter(particle => {
+                particle.update();
+                return particle.life > 0;
+            });
+        }
+
+        function drawFireParticles() {
+            fireParticles.forEach(particle => particle.draw(ctx));
+        }
+
+        // Add green trail particle class
+        class GreenTrailParticle {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.size = Math.random() * 4 + 2;
+                this.speedX = (Math.random() - 0.5) * 1;
+                this.speedY = (Math.random() - 0.5) * 1;
+                this.life = 1.0;
+                this.decay = Math.random() * 0.02 + 0.01;
+            }
+
+            update() {
+                this.x += this.speedX;
+                this.y += this.speedY;
+                this.life -= this.decay;
+                this.size *= 0.95;
+            }
+
+            draw(ctx) {
+                const gradient = ctx.createRadialGradient(
+                    this.x, this.y, 0,
+                    this.x, this.y, this.size
+                );
+                gradient.addColorStop(0, `rgba(0, 255, ${Math.floor(100 * this.life)}, ${this.life})`);
+                gradient.addColorStop(1, 'rgba(0, 255, 0, 0)');
+                
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        function updateGreenTrailParticles() {
+            if (hasGreenTrail) {
+                // Add new particles
+                for (let i = 0; i < 2; i++) {
+                    greenTrailParticles.push(new GreenTrailParticle(
+                        ballX + (Math.random() - 0.5) * BALL_RADIUS,
+                        ballY + (Math.random() - 0.5) * BALL_RADIUS
+                    ));
+                }
+            }
+
+            // Update and remove dead particles
+            greenTrailParticles = greenTrailParticles.filter(particle => {
+                particle.update();
+                return particle.life > 0;
+            });
+        }
+
+        function drawGreenTrailParticles() {
+            greenTrailParticles.forEach(particle => particle.draw(ctx));
+        }
+
+        function ensureMinimumSpeed(speedX, speedY) {
+            const totalSpeed = Math.sqrt(speedX * speedX + speedY * speedY);
+            if (totalSpeed < MIN_TOTAL_SPEED) {
+                const ratio = MIN_TOTAL_SPEED / totalSpeed;
+                return {
+                    x: speedX * ratio,
+                    y: speedY * ratio
+                };
+            }
+            return { x: speedX, y: speedY };
+        }
+
+        // Add to Game State Variables section
+        let isTimeSlowed = false;
+        let timeSlowRemaining = 0;
+        let timeSlowCooldownRemaining = 0;
+        let timeSlowParticles = [];
+
+        // Add time slow particle class
+        class TimeSlowParticle {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.size = Math.random() * 8 + 4;
+                this.life = 1.0;
+                this.decay = Math.random() * 0.02 + 0.02;
+                this.angle = Math.random() * Math.PI * 2;
+                this.radius = Math.random() * 50 + 20;
+                this.speed = Math.random() * 0.02 + 0.01;
+            }
+
+            update() {
+                this.life -= this.decay;
+                this.angle += this.speed;
+                this.x = canvas.width - PADDLE_WIDTH + Math.cos(this.angle) * this.radius;
+                this.y = rightPaddleY + PADDLE_HEIGHT / 2 + Math.sin(this.angle) * this.radius;
+            }
+
+            draw(ctx) {
+                const gradient = ctx.createRadialGradient(
+                    this.x, this.y, 0,
+                    this.x, this.y, this.size
+                );
+                gradient.addColorStop(0, `rgba(0, 255, 255, ${this.life * 0.5})`);
+                gradient.addColorStop(1, 'rgba(0, 255, 255, 0)');
+                
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        function updateTimeSlowParticles() {
+            if (isTimeSlowed) {
+                // Add new particles
+                for (let i = 0; i < 2; i++) {
+                    timeSlowParticles.push(new TimeSlowParticle(
+                        canvas.width - PADDLE_WIDTH,
+                        rightPaddleY + PADDLE_HEIGHT / 2
+                    ));
+                }
+            }
+
+            // Update and remove dead particles
+            timeSlowParticles = timeSlowParticles.filter(particle => {
+                particle.update();
+                return particle.life > 0;
+            });
+        }
+
+        function drawTimeSlowParticles() {
+            timeSlowParticles.forEach(particle => particle.draw(ctx));
+        }
+
+        function updateBall(deltaTime) {
+            // Update particles
+            updateFireParticles();
+            updateGreenTrailParticles();
+            updateTimeSlowParticles();
+
+            // Apply time slow effect
+            const effectiveDeltaTime = isTimeSlowed ? deltaTime * TIME_SLOW_FACTOR : deltaTime;
+            
+            // Update time slow duration and cooldown
+            if (isTimeSlowed) {
+                timeSlowRemaining -= deltaTime;
+                if (timeSlowRemaining <= 0) {
+                    isTimeSlowed = false;
+                    timeSlowParticles = [];
+                    timeSound.pause();
+                    timeSound.currentTime = 0;
+                }
+            }
+            if (timeSlowCooldownRemaining > 0) {
+                timeSlowCooldownRemaining -= deltaTime;
+            }
+
+            // Apply spin effect to ball movement
+            currentBallSpeedY += ballSpin * deltaTime;
+            ballSpin *= 0.95; // Gradually reduce spin
+
+            // Update ball position
+            ballX += currentBallSpeedX * currentSpeedMultiplier * effectiveDeltaTime;
+            ballY += currentBallSpeedY * currentSpeedMultiplier * effectiveDeltaTime;
+
+            // Wall bounce
+            if (ballY - BALL_RADIUS < 0) {
+                ballY = BALL_RADIUS;
+                currentBallSpeedY = Math.abs(currentBallSpeedY);
+                playSound(false);
+            } else if (ballY + BALL_RADIUS > canvas.height) {
+                ballY = canvas.height - BALL_RADIUS;
+                currentBallSpeedY = -Math.abs(currentBallSpeedY);
+                playSound(false);
+            }
+
+            // Paddle collision
+            const hitPaddle = (paddleY, paddleHeight) => 
+                ballY + BALL_RADIUS > paddleY && 
+                ballY - BALL_RADIUS < paddleY + paddleHeight;
+
+            // Left paddle collision
+            if (ballX - BALL_RADIUS < PADDLE_WIDTH && currentBallSpeedX < 0) {
+                const leftPaddleHeight = cheatActive ? PADDLE_HEIGHT * LEFT_PADDLE_MULTIPLIER : PADDLE_HEIGHT;
+                if (hitPaddle(leftPaddleY, leftPaddleHeight)) {
+                    ballX = PADDLE_WIDTH + BALL_RADIUS;
+                    let hitFactor = (ballY - (leftPaddleY + leftPaddleHeight / 2)) / (leftPaddleHeight / 2);
+                    
+                    // Calculate spin based on hit position and paddle movement
+                    const paddleSpeed = (leftPaddleY - lastHitPaddle) / deltaTime;
+                    ballSpin = hitFactor * paddleSpeed * BALL_SPIN_FACTOR;
+                    
+                    // Sweet spot detection
+                    const distanceFromCenter = Math.abs(hitFactor);
+                    if (distanceFromCenter < SWEET_SPOT_RANGE / (leftPaddleHeight / 2)) {
+                        currentSpeedMultiplier *= SWEET_SPOT_SPEED_MULTIPLIER;
+                        screenShake = 0.2;
+                        chromaticAberration = 0.5;
+                    }
+
+                    // Add fire effect for left paddle hit
+                    if (cheatActive) {
+                        isBallOnFire = true;
+                        hasGreenTrail = false;
+                        greenTrailParticles = [];
+                        currentSpeedMultiplier = MIN_SPEED_MULTIPLIER + Math.random() * (MAX_SPEED_MULTIPLIER - MIN_SPEED_MULTIPLIER);
+                    }
+
+                    currentBallSpeedX = Math.abs(currentBallSpeedX) * BALL_SPEED_INCREASE_FACTOR;
+                    currentBallSpeedY = INITIAL_BALL_SPEED_Y_PPS * hitFactor;
+                    
+                    lastHitPaddle = leftPaddleY;
+                    rallyCount++;
+                    playSound(true);
+                }
+            }
+
+            // Right paddle collision
+            if (ballX + BALL_RADIUS > canvas.width - PADDLE_WIDTH && currentBallSpeedX > 0) {
+                const rightPaddleHeight = cheatActive ? PADDLE_HEIGHT * RIGHT_PADDLE_MULTIPLIER : PADDLE_HEIGHT;
+                if (hitPaddle(rightPaddleY, rightPaddleHeight)) {
+                    ballX = canvas.width - PADDLE_WIDTH - BALL_RADIUS;
+                    let hitFactor = (ballY - (rightPaddleY + rightPaddleHeight / 2)) / (rightPaddleHeight / 2);
+                    
+                    // Calculate spin based on hit position and paddle movement
+                    const paddleSpeed = (rightPaddleY - lastHitPaddle) / deltaTime;
+                    ballSpin = hitFactor * paddleSpeed * BALL_SPIN_FACTOR;
+                    
+                    // Sweet spot detection
+                    const distanceFromCenter = Math.abs(hitFactor);
+                    if (distanceFromCenter < SWEET_SPOT_RANGE / (rightPaddleHeight / 2)) {
+                        currentSpeedMultiplier *= SWEET_SPOT_SPEED_MULTIPLIER;
+                        screenShake = 0.2;
+                        chromaticAberration = 0.5;
+                    }
+
+                    // Add green trail for right paddle hit
+                    if (cheatActive) {
+                        isBallOnFire = false;
+                        fireParticles = [];
+                        hasGreenTrail = true;
+                        currentSpeedMultiplier = MIN_SPEED_MULTIPLIER + Math.random() * (MAX_SPEED_MULTIPLIER - MIN_SPEED_MULTIPLIER);
+                    }
+
+                    currentBallSpeedX = -Math.abs(currentBallSpeedX) * BALL_SPEED_INCREASE_FACTOR;
+                    currentBallSpeedY = INITIAL_BALL_SPEED_Y_PPS * hitFactor;
+                    
+                    lastHitPaddle = rightPaddleY;
+                    rallyCount++;
+                    playSound(true);
+                }
+            }
+
+            // Score points
+            if (ballX - BALL_RADIUS * 2 < 0) {
+                rightPlayerScore++;
+                updateScoreDisplay();
+                if (cheatActive) {
+                    bossHealth = Math.max(0, bossHealth - 20);
+                    updateHealthBars();
+                    if (bossHealth <= 0) {
+                        cheatActive = false;
+                        notification.textContent = 'EVIL MODE DEACTIVATED';
+                        notification.classList.add('show');
+                        setTimeout(() => {
+                            notification.classList.remove('show');
+                        }, 2000);
+                        bossHealthBar.style.display = 'none';
+                        playerHealthBar.style.display = 'none';
+                        bossName.style.display = 'none';
+                        playerName.style.display = 'none';
+                        fartSound.pause();
+                    }
+                }
+                checkWinCondition();
+                resetBall(1);
+                startCountdown();
+            } else if (ballX + BALL_RADIUS * 2 > canvas.width) {
+                leftPlayerScore++;
+                updateScoreDisplay();
+                if (cheatActive) {
+                    playerHealth = Math.max(0, playerHealth - 20);
+                    updateHealthBars();
+                    if (playerHealth <= 0) {
+                        cheatActive = false;
+                        notification.textContent = 'EVIL MODE DEACTIVATED';
+                        notification.classList.add('show');
+                        setTimeout(() => {
+                            notification.classList.remove('show');
+                        }, 2000);
+                        bossHealthBar.style.display = 'none';
+                        playerHealthBar.style.display = 'none';
+                        bossName.style.display = 'none';
+                        playerName.style.display = 'none';
+                        fartSound.pause();
+                    }
+                }
+                checkWinCondition();
+                resetBall(-1);
+                startCountdown();
+            }
+
+            // Update visual effects
+            if (screenShake > 0) {
+                screenShake -= deltaTime;
+                const shake = Math.sin(performance.now() * 0.1) * screenShake * 10;
+                canvas.style.transform = `translate(${shake}px, ${shake}px)`;
+            } else {
+                canvas.style.transform = 'none';
+            }
+
+            if (chromaticAberration > 0) {
+                chromaticAberration -= deltaTime;
+                canvas.style.filter = `blur(0px) hue-rotate(${chromaticAberration * 20}deg)`;
+            } else {
+                canvas.style.filter = 'none';
+            }
+        }
+        
+        function checkWinCondition() {
+            if (!gameRunning) return; // Don't check if game already ended
+            if (leftPlayerScore >= WINNING_SCORE || rightPlayerScore >= WINNING_SCORE) {
+                gameOver();
+            }
+        }
+
+        function gameOver() {
+            gameRunning = false;
+            showMenuScreen(true);
+        }
+
+        function showMenuScreen(isGameOver = false) {
+            gameRunning = false;
+            menuOverlay.classList.remove('hidden');
+            canvas.style.filter = 'blur(5px)';
+            if (isGameOver) {
+                 const winner = leftPlayerScore >= WINNING_SCORE ? "Player 1" : (rightPlayerScore >= WINNING_SCORE ? (playAgainstComputer ? "Computer" : "Player 2") : "Game Paused");
+                 document.querySelector('.menu h1').textContent = `${winner} Wins!`;
+                 playButton.textContent = 'Play Again';
+            } else {
+                 document.querySelector('.menu h1').textContent = 'PONG NEON'; // Match new title style
+                 playButton.textContent = 'Play Game';
+            }
+        }
+        
+        function updateScoreDisplay() {
+            leftScoreDisplay.textContent = leftPlayerScore;
+            rightScoreDisplay.textContent = rightPlayerScore;
+        }
+
+        // --- Drawing Functions ---
+        function drawDashedCenterLine() {
+            ctx.beginPath();
+            ctx.setLineDash([10, 10]); // Dash pattern: 10px line, 10px gap
+            ctx.moveTo(canvas.width / 2, 0);
+            ctx.lineTo(canvas.width / 2, canvas.height);
+            ctx.strokeStyle = 'rgba(0, 255, 255, 0.3)'; // Faint cyan
+            ctx.lineWidth = 3;
+            ctx.stroke();
+            ctx.setLineDash([]); // Reset dash pattern
+        }
+
+        function drawPaddle(x, y, width, height) {
+            // Apply size multipliers in evil mode
+            if (cheatActive) {
+                if (x === 0) {
+                    height *= LEFT_PADDLE_MULTIPLIER;
+                    ctx.fillStyle = '#ff0000'; // Red color for evil mode left paddle
+                } else if (x === canvas.width - PADDLE_WIDTH) {
+                    height *= RIGHT_PADDLE_MULTIPLIER;
+                    ctx.fillStyle = '#00ff00'; // Green color for evil mode right paddle
+                }
+            } else {
+                ctx.fillStyle = 'var(--paddle-color)'; // Normal color
+            }
+            
+            // Simple rounded rectangle
+            const r = 5; // Radius
+            ctx.beginPath();
+            ctx.moveTo(x + r, y);
+            ctx.arcTo(x + width, y,   x + width, y + height, r);
+            ctx.arcTo(x + width, y + height, x,   y + height, r);
+            ctx.arcTo(x,   y + height, x,   y,   r);
+            ctx.arcTo(x,   y,   x + width, y,   r);
+            ctx.closePath();
+            ctx.fill();
+            // Add a subtle inner glow or highlight
+            ctx.shadowColor = cheatActive ? (x === 0 ? 'rgba(255, 0, 0, 0.8)' : 'rgba(0, 255, 0, 0.8)') : 'rgba(255, 255, 255, 0.5)';
+            ctx.shadowBlur = 10; // Increased glow for evil mode
+            ctx.fill(); // Fill again to apply shadow
+            ctx.shadowBlur = 0; // Reset shadow
+        }
+
+        function drawBall() {
+            // Draw fire particles first
+            if (isBallOnFire) {
+                drawFireParticles();
+            }
+
+            // Draw green trail particles
+            if (hasGreenTrail) {
+                drawGreenTrailParticles();
+            }
+
+            // Draw the ball
+            ctx.beginPath();
+            ctx.arc(ballX, ballY, BALL_RADIUS, 0, Math.PI * 2);
+            
+            if (isBallOnFire) {
+                // Create fire gradient for the ball
+                const gradient = ctx.createRadialGradient(
+                    ballX, ballY, 0,
+                    ballX, ballY, BALL_RADIUS
+                );
+                gradient.addColorStop(0, '#ff4400');
+                gradient.addColorStop(0.5, '#ff8800');
+                gradient.addColorStop(1, '#ffcc00');
+                ctx.fillStyle = gradient;
+            } else if (hasGreenTrail) {
+                // Create green glow for the ball
+                const gradient = ctx.createRadialGradient(
+                    ballX, ballY, 0,
+                    ballX, ballY, BALL_RADIUS
+                );
+                gradient.addColorStop(0, '#00ff00');
+                gradient.addColorStop(0.5, '#00ff88');
+                gradient.addColorStop(1, '#00ffcc');
+                ctx.fillStyle = gradient;
+            } else {
+                ctx.fillStyle = 'var(--ball-color)';
+            }
+            
+            ctx.fill();
+            
+            // Ball Glow
+            ctx.shadowColor = isBallOnFire ? '#ff4400' : (hasGreenTrail ? '#00ff00' : 'var(--ball-color)');
+            ctx.shadowBlur = isBallOnFire ? 20 : (hasGreenTrail ? 20 : 15);
+            ctx.fill(); // Fill again to apply shadow
+            ctx.shadowBlur = 0; // Reset shadow
+            ctx.closePath();
+        }
+        
+        function drawCountdownText() {
+            if (countdownValue > 0) {
+                ctx.font = "70px 'Press Start 2P', cursive"; // Using imported font
+                ctx.fillStyle = 'rgba(0, 255, 255, 0.8)';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle'; // Better vertical centering
+                const seconds = Math.ceil(countdownValue);
+                // Add a subtle shadow/outline to countdown text
+                ctx.shadowColor = 'rgba(0,0,0,0.7)';
+                ctx.shadowOffsetX = 2;
+                ctx.shadowOffsetY = 2;
+                ctx.shadowBlur = 3;
+                ctx.fillText(seconds, canvas.width / 2, canvas.height / 2);
+                ctx.shadowColor = 'transparent'; // Reset shadow
+                ctx.textAlign = 'left'; // Reset alignment
+                ctx.textBaseline = 'alphabetic'; // Reset baseline
+            }
+        }
+        
+        function gameLoop(currentTime) {
+            if (!gameRunning) {
+                if (gameIntervalId) cancelAnimationFrame(gameIntervalId);
+                return;
+            }
+
+            const deltaTime = (currentTime - lastFrameTime) / 1000;
+            lastFrameTime = currentTime;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawDashedCenterLine();
+
+            if (cheatActive) {
+                updateBullets(deltaTime);
+            }
+
+            updatePaddles(deltaTime);
+            updateDashTrailParticles();
+            
+            if (countdownValue > 0) {
+                timeAccumulator += deltaTime;
+                if (timeAccumulator >= 1.0) {
+                    countdownValue--;
+                    timeAccumulator -= 1.0;
+                }
+                drawCountdownText();
+                drawPaddle(0, leftPaddleY, PADDLE_WIDTH, PADDLE_HEIGHT);
+                drawPaddle(canvas.width - PADDLE_WIDTH, rightPaddleY, PADDLE_WIDTH, PADDLE_HEIGHT);
+                drawBall();
+                if (cheatActive) drawBullets();
+            } else {
+                updateBall(deltaTime);
+                drawDashTrailParticles();
+                drawTimeSlowParticles();
+                drawPaddle(0, leftPaddleY, PADDLE_WIDTH, PADDLE_HEIGHT);
+                drawPaddle(canvas.width - PADDLE_WIDTH, rightPaddleY, PADDLE_WIDTH, PADDLE_HEIGHT);
+                drawBall();
+                if (cheatActive) drawBullets();
+            }
+            
+            gameIntervalId = requestAnimationFrame(gameLoop);
+        }
+
+        function startGame() {
+            canvas.style.filter = 'none';
+            menuOverlay.classList.add('hidden');
+            initializeGame();
+            gameRunning = true;
+            lastFrameTime = performance.now();
+            timeAccumulator = 0;
+            if (gameIntervalId) cancelAnimationFrame(gameIntervalId);
+            gameIntervalId = requestAnimationFrame(gameLoop);
+        }
+
+        // Initial setup call
+        showMenuScreen();
+
+        // Add boss fight variables
+        let bossHealth = 100;
+        let playerHealth = 100;
+        let bossPhase = 1;
+        let bossAttackCooldown = 0;
+        let bossAttackPattern = 0;
+        let bossAttackTimer = 0;
+
+        // Create health bars
+        const bossHealthBar = document.createElement('div');
+        bossHealthBar.className = 'health-bar health-bar-boss';
+        const bossHealthFill = document.createElement('div');
+        bossHealthFill.className = 'health-fill health-fill-boss';
+        bossHealthBar.appendChild(bossHealthFill);
+        document.body.appendChild(bossHealthBar);
+
+        const playerHealthBar = document.createElement('div');
+        playerHealthBar.className = 'health-bar health-bar-player';
+        const playerHealthFill = document.createElement('div');
+        playerHealthFill.className = 'health-fill health-fill-player';
+        playerHealthBar.appendChild(playerHealthFill);
+        document.body.appendChild(playerHealthBar);
+
+        // Create name labels
+        const bossName = document.createElement('div');
+        bossName.className = 'boss-name';
+        bossName.textContent = 'BOSS';
+        document.body.appendChild(bossName);
+
+        const playerName = document.createElement('div');
+        playerName.className = 'player-name';
+        playerName.textContent = 'PLAYER';
+        document.body.appendChild(playerName);
+
+        // Hide health bars initially
+        bossHealthBar.style.display = 'none';
+        playerHealthBar.style.display = 'none';
+        bossName.style.display = 'none';
+        playerName.style.display = 'none';
+
+        function updateHealthBars() {
+            bossHealthFill.style.width = bossHealth + '%';
+            playerHealthFill.style.width = playerHealth + '%';
+        }
+
+        // Add dash trail particle class
+        class DashTrailParticle {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.size = Math.random() * 6 + 4;
+                this.life = 1.0;
+                this.decay = Math.random() * 0.05 + 0.05;
+            }
+
+            update() {
+                this.life -= this.decay;
+                this.size *= 0.95;
+            }
+
+            draw(ctx) {
+                const gradient = ctx.createRadialGradient(
+                    this.x, this.y, 0,
+                    this.x, this.y, this.size
+                );
+                gradient.addColorStop(0, `rgba(0, 255, 0, ${this.life})`);
+                gradient.addColorStop(1, 'rgba(0, 255, 0, 0)');
+                
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        function updateDashTrailParticles() {
+            if (isDashing) {
+                // Add new particles at paddle position
+                for (let i = 0; i < 3; i++) {
+                    dashTrailParticles.push(new DashTrailParticle(
+                        canvas.width - PADDLE_WIDTH,
+                        rightPaddleY + PADDLE_HEIGHT / 2 + (Math.random() - 0.5) * PADDLE_HEIGHT
+                    ));
+                }
+            }
+
+            // Update and remove dead particles
+            dashTrailParticles = dashTrailParticles.filter(particle => {
+                particle.update();
+                return particle.life > 0;
+            });
+        }
+
+        function drawDashTrailParticles() {
+            dashTrailParticles.forEach(particle => particle.draw(ctx));
+        }
+
+        // Power-up system
+        class PowerUp {
+            constructor(type, x, y) {
+                this.type = type;
+                this.x = x;
+                this.y = y;
+                this.width = 30;
+                this.height = 30;
+                this.active = true;
+                this.collected = false;
+                this.animationFrame = 0;
+            }
+
+            update() {
+                this.animationFrame = (this.animationFrame + 0.1) % (Math.PI * 2);
+            }
+
+            draw(ctx) {
+                if (!this.active || this.collected) return;
+
+                const yOffset = Math.sin(this.animationFrame) * 5;
+                
+                ctx.save();
+                ctx.translate(this.x, this.y + yOffset);
+                
+                // Draw power-up icon
+                ctx.fillStyle = this.getColor();
+                ctx.beginPath();
+                ctx.arc(0, 0, 15, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Draw power-up symbol
+                ctx.fillStyle = '#ffffff';
+                ctx.font = '20px "Press Start 2P"';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(this.getSymbol(), 0, 0);
+                
+                ctx.restore();
+            }
+
+            getColor() {
+                switch(this.type) {
+                    case 'rocket': return '#ff0000';
+                    case 'chainsaw': return '#00ff00';
+                    case 'health': return '#ffff00';
+                    case 'teleport': return '#0000ff';
+                    case 'demon': return '#ff00ff';
+                    default: return '#ffffff';
+                }
+            }
+
+            getSymbol() {
+                switch(this.type) {
+                    case 'rocket': return 'R';
+                    case 'chainsaw': return 'C';
+                    case 'health': return 'H';
+                    case 'teleport': return 'T';
+                    case 'demon': return 'D';
+                    default: return '?';
+                }
+            }
+        }
+
+        // Power-up effects
+        const powerUpEffects = {
+            rocket: {
+                duration: 5,
+                active: false,
+                timeRemaining: 0,
+                apply: function() {
+                    this.active = true;
+                    this.timeRemaining = this.duration;
+                    doomAudio.rocket.play();
+                },
+                update: function(deltaTime) {
+                    if (this.active) {
+                        this.timeRemaining -= deltaTime;
+                        if (this.timeRemaining <= 0) {
+                            this.active = false;
+                        }
+                    }
+                }
+            },
+            chainsaw: {
+                duration: 5,
+                active: false,
+                timeRemaining: 0,
+                apply: function() {
+                    this.active = true;
+                    this.timeRemaining = this.duration;
+                    doomAudio.chainsaw.play();
+                },
+                update: function(deltaTime) {
+                    if (this.active) {
+                        this.timeRemaining -= deltaTime;
+                        if (this.timeRemaining <= 0) {
+                            this.active = false;
+                        }
+                    }
+                }
+            },
+            health: {
+                duration: 0,
+                active: false,
+                apply: function() {
+                    this.active = true;
+                    playerHealth = Math.min(100, playerHealth + 30);
+                    updateHealthBars();
+                    doomAudio.health.play();
+                }
+            },
+            teleport: {
+                duration: 0,
+                active: false,
+                apply: function() {
+                    this.active = true;
+                    // Teleport the ball to a random position
+                    ballX = canvas.width / 2;
+                    ballY = Math.random() * canvas.height;
+                    doomAudio.teleport.play();
+                }
+            },
+            demon: {
+                duration: 5,
+                active: false,
+                timeRemaining: 0,
+                apply: function() {
+                    this.active = true;
+                    this.timeRemaining = this.duration;
+                    doomAudio.demon.play();
+                },
+                update: function(deltaTime) {
+                    if (this.active) {
+                        this.timeRemaining -= deltaTime;
+                        if (this.timeRemaining <= 0) {
+                            this.active = false;
+                        }
+                    }
+                }
+            }
+        };
+
+        // Power-up spawn system
+        let powerUps = [];
+        let powerUpSpawnTimer = 0;
+        const POWER_UP_SPAWN_INTERVAL = 10; // seconds
+
+        function spawnPowerUp() {
+            const types = ['rocket', 'chainsaw', 'health', 'teleport', 'demon'];
+            const type = types[Math.floor(Math.random() * types.length)];
+            const x = Math.random() * (canvas.width - 60) + 30;
+            const y = Math.random() * (canvas.height - 60) + 30;
+            powerUps.push(new PowerUp(type, x, y));
+        }
+
+        function updatePowerUps(deltaTime) {
+            // Update spawn timer
+            powerUpSpawnTimer += deltaTime;
+            if (powerUpSpawnTimer >= POWER_UP_SPAWN_INTERVAL) {
+                powerUpSpawnTimer = 0;
+                spawnPowerUp();
+            }
+
+            // Update existing power-ups
+            powerUps.forEach(powerUp => {
+                powerUp.update();
+                
+                // Check for collision with paddles
+                if (!powerUp.collected) {
+                    const leftPaddleHeight = cheatActive ? PADDLE_HEIGHT * LEFT_PADDLE_MULTIPLIER : PADDLE_HEIGHT;
+                    const rightPaddleHeight = cheatActive ? PADDLE_HEIGHT * RIGHT_PADDLE_MULTIPLIER : PADDLE_HEIGHT;
+                    
+                    // Check left paddle collision
+                    if (powerUp.x < PADDLE_WIDTH + 15 &&
+                        powerUp.y > leftPaddleY &&
+                        powerUp.y < leftPaddleY + leftPaddleHeight) {
+                        powerUp.collected = true;
+                        powerUpEffects[powerUp.type].apply();
+                    }
+                    
+                    // Check right paddle collision
+                    if (powerUp.x > canvas.width - PADDLE_WIDTH - 15 &&
+                        powerUp.y > rightPaddleY &&
+                        powerUp.y < rightPaddleY + rightPaddleHeight) {
+                        powerUp.collected = true;
+                        powerUpEffects[powerUp.type].apply();
+                    }
+                }
+            });
+
+            // Remove collected power-ups
+            powerUps = powerUps.filter(powerUp => !powerUp.collected);
+
+            // Update active power-up effects
+            Object.values(powerUpEffects).forEach(effect => {
+                if (effect.update) {
+                    effect.update(deltaTime);
+                }
+            });
+        }
+
+        function drawPowerUps() {
+            powerUps.forEach(powerUp => powerUp.draw(ctx));
+        }
+
+        // Add to Game Constants section
+        const AI_DIFFICULTY_LEVELS = {
+            easy: { speedFactor: 0.65, predictionAccuracy: 0.7 },
+            medium: { speedFactor: 0.78, predictionAccuracy: 0.85 },
+            hard: { speedFactor: 0.9, predictionAccuracy: 0.95 }
+        };
+        const BALL_SPIN_FACTOR = 0.5;
+        const SWEET_SPOT_RANGE = 10; // pixels from center of paddle
+        const SWEET_SPOT_SPEED_MULTIPLIER = 1.3;
+
+        // Add to Game State Variables section
+        let currentAIDifficulty = 'medium';
+        let ballSpin = 0;
+        let lastHitPaddle = null;
+        let rallyCount = 0;
+        let screenShake = 0;
+        let chromaticAberration = 0;
+
+        // Add to the menu HTML, inside the controls-group div
+        const difficultySelect = document.createElement('select');
+        difficultySelect.id = 'aiDifficulty';
+        difficultySelect.innerHTML = `
+            <option value="easy">Easy</option>
+            <option value="medium" selected>Medium</option>
+            <option value="hard">Hard</option>
+        `;
+        const difficultyLabel = document.createElement('label');
+        difficultyLabel.textContent = 'AI Difficulty: ';
+        difficultyLabel.appendChild(difficultySelect);
+        document.querySelector('.controls-group').appendChild(difficultyLabel);
+
+        // Add event listener for difficulty selection
+        difficultySelect.addEventListener('change', (e) => {
+            currentAIDifficulty = e.target.value;
+        });
+
+    </script>
+</body>
+</html>
