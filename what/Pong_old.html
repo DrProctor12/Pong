@@ -431,8 +431,7 @@
         <div class="menu">
             <h1>PONG NEON</h1>
             <button id="playButton">Play Game</button>
-            <button id="evilModeButton" title="A special mode with new abilities and challenges">Evil Mode</button>
-            <button id="howToPlayButton">How to Play</button>
+            <button id="evilModeButton">Evil Mode</button>
             <div class="controls-group">
                 <label for="volumeSlider">Volume: <span id="volumeValue">0.50</span></label> <input type="range" min="0" max="1" step="0.01" value="0.5" id="volumeSlider">
                 <div class="computer-play-toggle">
@@ -447,30 +446,7 @@
                     </select>
                 </div>
             </div>
-            <button id="pauseButton" style="display: none;">Pause</button>
-            <button id="resumeButton" style="display: none;">Resume</button>
-            <button id="exitButton">Menu</button>
-            <button id="playAgainButton" style="display: none;">Play Again</button>
-        </div>
-    </div>
-
-    <div id="howToPlayModal" class="overlay" style="display: none;">
-        <div class="menu">
-            <h1>How to Play Evil Mode</h1>
-            <p>Player 1 (Left):</p>
-            <ul style="text-align: left;">
-                <li>W/S to move</li>
-                <li>F to shoot</li>
-            </ul>
-            <p>Player 2 (Right):</p>
-            <ul style="text-align: left;">
-                <li>Arrow Up/Down to move</li>
-                <li>L to shoot</li>
-                <li>K to slow time</li>
-                <li>Double tap Up/Down to dash</li>
-            </ul>
-            <button id="closeHowToPlayButton">Close</button>
-        </div>
+            <button id="exitButton">Menu</button> </div>
     </div>
 
     <script>
@@ -526,13 +502,6 @@
         const volumeSlider = document.getElementById('volumeSlider');
         const volumeValueDisplay = document.getElementById('volumeValue');
         const computerPlayCheckbox = document.getElementById('computerPlayCheckbox');
-        const evilModeButton = document.getElementById('evilModeButton');
-        const pauseButton = document.getElementById('pauseButton');
-        const resumeButton = document.getElementById('resumeButton');
-        const playAgainButton = document.getElementById('playAgainButton');
-        const howToPlayButton = document.getElementById('howToPlayButton');
-        const howToPlayModal = document.getElementById('howToPlayModal');
-        const closeHowToPlayButton = document.getElementById('closeHowToPlayButton');
 
         // Initialize canvas with normal size
         canvas.width = NORMAL_CANVAS_WIDTH;
@@ -563,7 +532,6 @@
         let countdownValue;
         let gameIntervalId;
         let gameRunning = false;
-        let gamePaused = false;
         let playAgainstComputer = false;
         let lastFrameTime = 0;
         let timeAccumulator = 0;
@@ -589,7 +557,9 @@
         const RIGHT_PADDLE_BURST_INTERVAL = 0.1; // seconds between bullets in a burst
 
         // Cheat code system
+        let keySequence = '';
         let cheatActive = false;
+        const CHEAT_CODE = 'scott1';
         const CHEAT_PADDLE_MULTIPLIER = 2;
 
         // Audio setup
@@ -599,7 +569,7 @@
         let masterVolume = 0.5;
 
         // Add fart sound for evil mode
-        const fartSound = new Audio('2.mp3');
+        const fartSound = new Audio('fart.mp3');
         fartSound.loop = true; // Make it loop continuously
         let wasPlaying = false; // Track if sound was playing before deactivation
 
@@ -824,11 +794,7 @@
                 }
 
                 // Update position
-                let currentSpeed = this.speed;
-                if (!this.isLeftPaddle && powerUpEffects.rocket.active) {
-                    currentSpeed *= 2;
-                }
-                this.x += currentSpeed * this.direction * deltaTime;
+                this.x += this.speed * this.direction * deltaTime;
                 this.animationFrame = (this.animationFrame + 0.1) % (Math.PI * 2);
 
                 // Deactivate if bullet goes off screen
@@ -921,14 +887,9 @@
                     if (bullet.x + bullet.width > canvas.width - PADDLE_WIDTH &&
                         bullet.y > rightPaddleY &&
                         bullet.y < rightPaddleY + rightPaddleHeight) {
-
-                        if (powerUpEffects.chainsaw.active) {
-                            bullet.active = false;
-                        } else {
-                            playerHealth = Math.max(0, playerHealth - bullet.damage);
-                            updateHealthBars();
-                            bullet.active = false;
-                        }
+                        playerHealth = Math.max(0, playerHealth - bullet.damage);
+                        updateHealthBars();
+                        bullet.active = false;
                         playSound(true);
                     }
                 }
@@ -1045,52 +1006,60 @@
             }
         });
 
-        evilModeButton.addEventListener('click', () => {
-            cheatActive = !cheatActive;
-            // Show/hide notification
-            notification.textContent = cheatActive ? 'EVIL MODE ACTIVATED' : 'EVIL MODE DEACTIVATED';
-            notification.classList.add('show');
-            setTimeout(() => {
-                notification.classList.remove('show');
-            }, 2000);
-
-            // Toggle health bars and names
-            bossHealthBar.style.display = cheatActive ? 'block' : 'none';
-            playerHealthBar.style.display = cheatActive ? 'block' : 'none';
-            bossName.style.display = cheatActive ? 'block' : 'none';
-            playerName.style.display = cheatActive ? 'block' : 'none';
-
-            // Animate canvas size change
-            if (cheatActive) {
-                animateCanvasSize(BOSS_CANVAS_WIDTH, BOSS_CANVAS_HEIGHT);
-            } else {
-                animateCanvasSize(NORMAL_CANVAS_WIDTH, NORMAL_CANVAS_HEIGHT);
+        // Add back the keypress event listener for cheat code
+        window.addEventListener('keypress', event => {
+            keySequence += event.key;
+            if (keySequence.length > CHEAT_CODE.length) {
+                keySequence = keySequence.slice(-CHEAT_CODE.length);
             }
+            if (keySequence === CHEAT_CODE) {
+                cheatActive = !cheatActive;
+                keySequence = '';
+                // Show/hide notification
+                notification.textContent = cheatActive ? 'EVIL MODE ACTIVATED' : 'EVIL MODE DEACTIVATED';
+                notification.classList.add('show');
+                setTimeout(() => {
+                    notification.classList.remove('show');
+                }, 2000);
 
-            // Initialize health when starting evil mode
-            if (cheatActive) {
-                bossHealth = 100;
-                playerHealth = 100;
-                updateHealthBars();
-            }
+                // Toggle health bars and names
+                bossHealthBar.style.display = cheatActive ? 'block' : 'none';
+                playerHealthBar.style.display = cheatActive ? 'block' : 'none';
+                bossName.style.display = cheatActive ? 'block' : 'none';
+                playerName.style.display = cheatActive ? 'block' : 'none';
 
-            // Handle fart sound
-            if (cheatActive) {
-                if (wasPlaying) {
-                    fartSound.play();
+                // Animate canvas size change
+                if (cheatActive) {
+                    animateCanvasSize(BOSS_CANVAS_WIDTH, BOSS_CANVAS_HEIGHT);
                 } else {
-                    fartSound.currentTime = 0;
-                    fartSound.play();
+                    animateCanvasSize(NORMAL_CANVAS_WIDTH, NORMAL_CANVAS_HEIGHT);
                 }
-            } else {
-                wasPlaying = true;
-                fartSound.pause();
-                // Also stop time sound when deactivating evil mode
-                timeSound.pause();
-                timeSound.currentTime = 0;
-            }
 
-            console.log('Cheat ' + (cheatActive ? 'activated' : 'deactivated'));
+                // Initialize health when starting evil mode
+                if (cheatActive) {
+                    bossHealth = 100;
+                    playerHealth = 100;
+                    updateHealthBars();
+                }
+
+                // Handle fart sound
+                if (cheatActive) {
+                    if (wasPlaying) {
+                        fartSound.play();
+                    } else {
+                        fartSound.currentTime = 0;
+                        fartSound.play();
+                    }
+                } else {
+                    wasPlaying = true;
+                    fartSound.pause();
+                    // Also stop time sound when deactivating evil mode
+                    timeSound.pause();
+                    timeSound.currentTime = 0;
+                }
+
+                console.log('Cheat ' + (cheatActive ? 'activated' : 'deactivated'));
+            }
         });
 
         window.addEventListener('keyup', event => {
@@ -1110,30 +1079,7 @@
         });
 
         playButton.addEventListener('click', startGame);
-        playAgainButton.addEventListener('click', startGame);
-        exitButton.addEventListener('click', () => {
-            if (confirm('Are you sure you want to exit to the main menu?')) {
-                showMenuScreen(false);
-            }
-        });
-        pauseButton.addEventListener('click', () => {
-            gamePaused = true;
-            pauseButton.style.display = 'none';
-            resumeButton.style.display = 'inline-block';
-        });
-        resumeButton.addEventListener('click', () => {
-            gamePaused = false;
-            pauseButton.style.display = 'inline-block';
-            resumeButton.style.display = 'none';
-            lastFrameTime = performance.now();
-            requestAnimationFrame(gameLoop);
-        });
-        howToPlayButton.addEventListener('click', () => {
-            howToPlayModal.style.display = 'flex';
-        });
-        closeHowToPlayButton.addEventListener('click', () => {
-            howToPlayModal.style.display = 'none';
-        });
+        exitButton.addEventListener('click', () => showMenuScreen(false)); // Go to menu, not game over state
         volumeSlider.addEventListener('input', changeVolume);
         computerPlayCheckbox.addEventListener('change', event => playAgainstComputer = event.target.checked);
 
@@ -1169,28 +1115,20 @@
                 const computerMoveDistance = PADDLE_SPEED_PPS * aiSettings.speedFactor * rightPaddleDeltaTime;
                 let targetY = ballY;
 
-                // Add a reaction time for the AI
-                if (Math.random() > aiSettings.reactionTime) {
-                    if (currentBallSpeedX > 0) {
-                        const timeToReachPaddle = (canvas.width - PADDLE_WIDTH - ballX) / currentBallSpeedX;
-                        if (timeToReachPaddle > 0 && timeToReachPaddle < (canvas.width / Math.abs(currentBallSpeedX)) * 0.75) {
-                            // Add prediction error based on difficulty
-                            const predictionError = (1 - aiSettings.predictionAccuracy) * (Math.random() - 0.5) * 100;
-                            let predictedY = ballY + currentBallSpeedY * timeToReachPaddle + predictionError;
+                if (currentBallSpeedX > 0) {
+                    const timeToReachPaddle = (canvas.width - PADDLE_WIDTH - ballX) / currentBallSpeedX;
+                    if (timeToReachPaddle > 0 && timeToReachPaddle < (canvas.width / Math.abs(currentBallSpeedX)) * 0.75) {
+                        // Add prediction error based on difficulty
+                        const predictionError = (1 - aiSettings.predictionAccuracy) * (Math.random() - 0.5) * 100;
+                        let predictedY = ballY + currentBallSpeedY * timeToReachPaddle + predictionError;
 
-                            // Add spin influence on prediction
-                            predictedY += ballSpin * timeToReachPaddle * 0.5;
+                        // Add spin influence on prediction
+                        predictedY += ballSpin * timeToReachPaddle * 0.5;
 
-                            if (predictedY < 0) predictedY = -predictedY;
-                            if (predictedY > canvas.height) predictedY = canvas.height - (predictedY - canvas.height);
-                            targetY = predictedY;
-                        }
+                        if (predictedY < 0) predictedY = -predictedY;
+                        if (predictedY > canvas.height) predictedY = canvas.height - (predictedY - canvas.height);
+                        targetY = predictedY;
                     }
-                }
-
-                // Add aggressive behavior for hard difficulty
-                if (currentAIDifficulty === 'hard' && Math.random() < 0.1) {
-                    targetY = canvas.height / 2;
                 }
 
                 const paddleCenter = rightPaddleY + rightPaddleHeight / 2;
@@ -1428,16 +1366,10 @@
             if (ballY - BALL_RADIUS < 0) {
                 ballY = BALL_RADIUS;
                 currentBallSpeedY = Math.abs(currentBallSpeedY);
-                if (Math.abs(currentBallSpeedX) > 0) {
-                    currentBallSpeedY += Math.random() * 0.1 - 0.05;
-                }
                 playSound(false);
             } else if (ballY + BALL_RADIUS > canvas.height) {
                 ballY = canvas.height - BALL_RADIUS;
                 currentBallSpeedY = -Math.abs(currentBallSpeedY);
-                if (Math.abs(currentBallSpeedX) > 0) {
-                    currentBallSpeedY += Math.random() * 0.1 - 0.05;
-                }
                 playSound(false);
             }
 
@@ -1600,18 +1532,13 @@
             gameRunning = false;
             menuOverlay.classList.remove('hidden');
             canvas.style.filter = 'blur(5px)';
-            pauseButton.style.display = 'none';
-            resumeButton.style.display = 'none';
-            playAgainButton.style.display = isGameOver ? 'inline-block' : 'none';
-            playButton.style.display = isGameOver ? 'none' : 'inline-block';
-            evilModeButton.style.display = isGameOver ? 'none' : 'inline-block';
-            howToPlayButton.style.display = isGameOver ? 'none' : 'inline-block';
-
             if (isGameOver) {
                  const winner = leftPlayerScore >= WINNING_SCORE ? "Player 1" : (rightPlayerScore >= WINNING_SCORE ? (playAgainstComputer ? "Computer" : "Player 2") : "Game Paused");
                  document.querySelector('.menu h1').textContent = `${winner} Wins!`;
+                 playButton.textContent = 'Play Again';
             } else {
                  document.querySelector('.menu h1').textContent = 'PONG NEON'; // Match new title style
+                 playButton.textContent = 'Play Game';
             }
         }
 
@@ -1737,11 +1664,6 @@
                 return;
             }
 
-            if (gamePaused) {
-                requestAnimationFrame(gameLoop);
-                return;
-            }
-
             const deltaTime = (currentTime - lastFrameTime) / 1000;
             lastFrameTime = currentTime;
 
@@ -1750,7 +1672,6 @@
 
             if (cheatActive) {
                 updateBullets(deltaTime);
-                updatePowerUps(deltaTime);
             }
 
             updatePaddles(deltaTime);
@@ -1766,10 +1687,7 @@
                 drawPaddle(0, leftPaddleY, PADDLE_WIDTH, PADDLE_HEIGHT);
                 drawPaddle(canvas.width - PADDLE_WIDTH, rightPaddleY, PADDLE_WIDTH, PADDLE_HEIGHT);
                 drawBall();
-                if (cheatActive) {
-                    drawBullets();
-                    drawPowerUps();
-                }
+                if (cheatActive) drawBullets();
             } else {
                 updateBall(deltaTime);
                 drawDashTrailParticles();
@@ -1777,10 +1695,7 @@
                 drawPaddle(0, leftPaddleY, PADDLE_WIDTH, PADDLE_HEIGHT);
                 drawPaddle(canvas.width - PADDLE_WIDTH, rightPaddleY, PADDLE_WIDTH, PADDLE_HEIGHT);
                 drawBall();
-                if (cheatActive) {
-                    drawBullets();
-                    drawPowerUps();
-                }
+                if (cheatActive) drawBullets();
             }
 
             gameIntervalId = requestAnimationFrame(gameLoop);
@@ -1791,7 +1706,6 @@
             menuOverlay.classList.add('hidden');
             initializeGame();
             gameRunning = true;
-            pauseButton.style.display = 'inline-block';
             lastFrameTime = performance.now();
             timeAccumulator = 0;
             if (gameIntervalId) cancelAnimationFrame(gameIntervalId);
@@ -2106,9 +2020,9 @@
 
         // Add to Game Constants section
         const AI_DIFFICULTY_LEVELS = {
-            easy: { speedFactor: 0.65, predictionAccuracy: 0.7, reactionTime: 0.3 },
-            medium: { speedFactor: 0.78, predictionAccuracy: 0.85, reactionTime: 0.1 },
-            hard: { speedFactor: 0.9, predictionAccuracy: 0.95, reactionTime: 0 }
+            easy: { speedFactor: 0.65, predictionAccuracy: 0.7 },
+            medium: { speedFactor: 0.78, predictionAccuracy: 0.85 },
+            hard: { speedFactor: 0.9, predictionAccuracy: 0.95 }
         };
         const BALL_SPIN_FACTOR = 0.5;
         const SWEET_SPOT_RANGE = 10; // pixels from center of paddle
